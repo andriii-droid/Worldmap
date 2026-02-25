@@ -21,12 +21,15 @@ void setup()
     pinMode(potiPin, INPUT);
     digitalWrite(greenLEDPin, HIGH);
     digitalWrite(LED_BUILTIN, HIGH);
+
+    Serial.begin(115200);
 }
 
 void loop()
 {
     if (redButton.getState(redButton.click))
     {
+        Serial.println("Red button pressed");
         if (digitalRead(LED_BUILTIN))
         {
             digitalWrite(LED_BUILTIN, LOW);
@@ -36,8 +39,9 @@ void loop()
         }
     }
 
-    if (blueButton.getState(redButton.click))
+    if (blueButton.getState(blueButton.click))
     {
+        Serial.println("Blue button pressed");
         if (digitalRead(LED_BUILTIN))
         {
             digitalWrite(LED_BUILTIN, LOW);
