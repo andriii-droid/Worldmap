@@ -1,12 +1,12 @@
 #include <Arduino.h>
 #include <Button.h>
 
-int relayPin = 30;
-int greenLEDPin = 4;
-int redLEDPin = 3;
-int redButtonPin = 11;
-int blueButtonPin = 10;
-int potiPin = 13;
+int relayPin = 36;
+int greenLEDPin = 2;
+int redLEDPin = 1;
+int redButtonPin = 9;
+int blueButtonPin = 8;
+int potiPin = 11;
 
 // Button Initialization
 Button redButton{redButtonPin};
