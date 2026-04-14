@@ -38,6 +38,8 @@ void setup()
     pinMode(potiPin, INPUT);
     pinMode(LED_BUILTIN, OUTPUT);
 
+    digitalWrite(relayPin, HIGH); //Turn Relay on per default for testing
+
     Serial.begin(115200);
 
     strip.Begin();
