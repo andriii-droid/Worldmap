@@ -1,5 +1,14 @@
 #include <Arduino.h>
 #include <Button.h>
+#include <vector>
+#include <Adafruit_NeoPixel.h>
+#include <OneFrame.h>
+#include <FrameFade.h>
+#include <PixelRun.h>
+#include <FadeIn.h>
+#include <MultiFade.h>
+#include <MultiFrame.h>
+#include <MultiFadeIn.h>
 
 int relayPin = 36;
 int greenLEDPin = 1;
@@ -27,8 +36,9 @@ void setup()
 
 void loop()
 {
-    Button::updateAll();
-    
+    redButton.updateButton();
+    blueButton.updateButton();
+
     if (redButton.getState(redButton.click))
     {
         if (digitalRead(relayPin))
