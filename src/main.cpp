@@ -1,8 +1,7 @@
 #include <Arduino.h>
 #include <Button.h>
 #include <vector>
-#include <Adafruit_NeoPixel.h>
-#include <OneFrame.h>
+#include <NeoPixelBus.h>
 #include <FrameFade.h>
 #include <PixelRun.h>
 #include <FadeIn.h>
@@ -10,13 +9,21 @@
 #include <MultiFrame.h>
 #include <MultiFadeIn.h>
 
-int relayPin = 36;
-int greenLEDPin = 1;
-int redLEDPin = 2;
-int redButtonPin = 9;
-int blueButtonPin = 8;
-int potiPin = 11;
-int pixelPin = 100;
+constexpr int relayPin = 36;
+constexpr int greenLEDPin = 1;
+constexpr int redLEDPin = 2;
+constexpr int redButtonPin = 9;
+constexpr int blueButtonPin = 8;
+constexpr int potiPin = 11;
+constexpr int pixelPin = 100;
+constexpr int numLeds = 99;
+int constexpr maxModi = 7;
+std::vector<int> cont = {50, 49};
+int modi = 0;
+int modiLast = 0;
+NeoPixelModi *Mode[maxModi];
+
+NeoPixelBus<NeoGrbFeature, NeoEsp32Rmt0800KbpsMethod> strip(numLeds, pixelPin);
 
 // Button Initialization
 Button redButton{redButtonPin};
@@ -32,6 +39,19 @@ void setup()
     pinMode(LED_BUILTIN, OUTPUT);
 
     Serial.begin(115200);
+
+    strip.Begin();
+    strip.Show();
+
+    Mode[0] = new OneFrame{5};
+    Mode[1] = new FrameFade{5};
+    Mode[2] = new PixelRun{5};
+    Mode[3] = new MultiFade{5, cont};
+    Mode[4] = new MultiFrame{5, cont};
+    Mode[5] = new FadeIn{5};
+    Mode[6] = new MultiFadeIn{5, cont};
+
+    Mode[modi]->setSpeed(255);
 }
 
 void loop()
@@ -39,28 +59,39 @@ void loop()
     redButton.updateButton();
     blueButton.updateButton();
 
+    if (blueButton.getState(blueButton.click))
+    {
+        Serial.println("loop");
+
+        int rgb[3];
+        Mode[modi]->createGoodRGB(rgb);
+        Mode[modi]->setColor(rgb[0], rgb[1], rgb[2]);
+    }
+
     if (redButton.getState(redButton.click))
     {
-        if (digitalRead(relayPin))
+        ++modi;
+        if (modi == maxModi)
         {
-            digitalWrite(relayPin, LOW);
-        } else
-        {
-            digitalWrite(relayPin, HIGH);
+            modi = 0;
         }
     }
 
-    if (blueButton.getState(blueButton.click))
+    if (modi != modiLast)
     {
-        Serial.println("Blue button pressed");
-        if (digitalRead(greenLEDPin))
-        {
-            digitalWrite(greenLEDPin, LOW);
-        }
-        else
-        {
-            digitalWrite(greenLEDPin, HIGH);
-        }
+        Mode[modi]->setBrightness(Mode[modiLast]->getBrightness());
+        Mode[modi]->setSpeed(Mode[modiLast]->getSpeed());
+
+        modiLast = modi;
     }
+
+    Mode[modi]->run();
+
+    for (size_t i = 0; i < numLeds; i++)
+    {
+        strip.SetPixelColor(i, RgbColor(Mode[modi]->getR(i), Mode[modi]->getG(i), Mode[modi]->getB(i)));
+    }
+
+    strip.Show();
 }
 
