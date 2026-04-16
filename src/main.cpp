@@ -15,10 +15,10 @@ constexpr int redLEDPin = 2;
 constexpr int redButtonPin = 9;
 constexpr int blueButtonPin = 8;
 constexpr int potiPin = 11;
-constexpr int pixelPin = 100;
+constexpr int pixelPin = 6;
 constexpr int numLeds = 99;
 int constexpr maxModi = 7;
-std::vector<int> cont = {50, 49};
+std::vector<int> cont = {20, 30, 49};
 int modi = 0;
 int modiLast = 0;
 NeoPixelModi *Mode[maxModi];
@@ -38,22 +38,26 @@ void setup()
     pinMode(potiPin, INPUT);
     pinMode(LED_BUILTIN, OUTPUT);
 
+    digitalWrite(redLEDPin, HIGH);
     digitalWrite(relayPin, HIGH); //Turn Relay on per default for testing
 
     Serial.begin(115200);
 
     strip.Begin();
+    strip.ClearTo(RgbColor(0, 0, 0));
     strip.Show();
 
-    Mode[0] = new OneFrame{5};
-    Mode[1] = new FrameFade{5};
-    Mode[2] = new PixelRun{5};
-    Mode[3] = new MultiFade{5, cont};
-    Mode[4] = new MultiFrame{5, cont};
-    Mode[5] = new FadeIn{5};
-    Mode[6] = new MultiFadeIn{5, cont};
+    Mode[0] = new OneFrame{numLeds};
+    Mode[1] = new FrameFade{numLeds};
+    Mode[2] = new PixelRun{numLeds};
+    Mode[3] = new MultiFade{numLeds, cont};
+    Mode[4] = new MultiFrame{numLeds, cont};
+    Mode[5] = new FadeIn{numLeds};
+    Mode[6] = new MultiFadeIn{numLeds, cont};
 
     Mode[modi]->setSpeed(255);
+    delay(1000);
+    digitalWrite(redLEDPin, LOW);
 }
 
 void loop()
@@ -83,9 +87,13 @@ void loop()
     {
         Mode[modi]->setBrightness(Mode[modiLast]->getBrightness());
         Mode[modi]->setSpeed(Mode[modiLast]->getSpeed());
+        Serial.print("Speed");
+        Serial.println(Mode[modi]->getSpeed());
 
         modiLast = modi;
     }
+
+    Mode[modi]->setSpeed(map(analogRead(potiPin), 20, 8100, 0, 255));
 
     Mode[modi]->run();
 
@@ -93,7 +101,6 @@ void loop()
     {
         strip.SetPixelColor(i, RgbColor(Mode[modi]->getR(i), Mode[modi]->getG(i), Mode[modi]->getB(i)));
     }
-
     strip.Show();
 }
 
