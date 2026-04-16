@@ -2,12 +2,7 @@
 #include <Button.h>
 #include <vector>
 #include <NeoPixelBus.h>
-#include <FrameFade.h>
-#include <PixelRun.h>
-#include <FadeIn.h>
-#include <MultiFade.h>
-#include <MultiFrame.h>
-#include <MultiFadeIn.h>
+#include <pattern.h>
 
 constexpr int relayPin = 36;
 constexpr int greenLEDPin = 1;
@@ -17,11 +12,8 @@ constexpr int blueButtonPin = 8;
 constexpr int potiPin = 11;
 constexpr int pixelPin = 6;
 constexpr int numLeds = 99;
-int constexpr maxModi = 7;
 std::vector<int> cont = {20, 30, 49};
-int modi = 0;
-int modiLast = 0;
-NeoPixelModi *Mode[maxModi];
+Pattern worldMap(numLeds, cont);
 
 NeoPixelBus<NeoGrbFeature, NeoEsp32Rmt0800KbpsMethod> strip(numLeds, pixelPin);
 
@@ -47,15 +39,6 @@ void setup()
     strip.ClearTo(RgbColor(0, 0, 0));
     strip.Show();
 
-    Mode[0] = new OneFrame{numLeds};
-    Mode[1] = new FrameFade{numLeds};
-    Mode[2] = new PixelRun{numLeds};
-    Mode[3] = new MultiFade{numLeds, cont};
-    Mode[4] = new MultiFrame{numLeds, cont};
-    Mode[5] = new FadeIn{numLeds};
-    Mode[6] = new MultiFadeIn{numLeds, cont};
-
-    Mode[modi]->setSpeed(255);
     delay(1000);
     digitalWrite(redLEDPin, LOW);
 }
@@ -67,39 +50,19 @@ void loop()
 
     if (blueButton.getState(blueButton.click))
     {
-        Serial.println("loop");
-
-        int rgb[3];
-        Mode[modi]->createGoodRGB(rgb);
-        Mode[modi]->setColor(rgb[0], rgb[1], rgb[2]);
+  
     }
 
     if (redButton.getState(redButton.click))
     {
-        ++modi;
-        if (modi == maxModi)
-        {
-            modi = 0;
-        }
+        worldMap.nextMode();
     }
 
-    if (modi != modiLast)
-    {
-        Mode[modi]->setBrightness(Mode[modiLast]->getBrightness());
-        Mode[modi]->setSpeed(Mode[modiLast]->getSpeed());
-        Serial.print("Speed");
-        Serial.println(Mode[modi]->getSpeed());
-
-        modiLast = modi;
-    }
-
-    Mode[modi]->setSpeed(map(analogRead(potiPin), 20, 8100, 0, 255));
-
-    Mode[modi]->run();
+    worldMap.run();
 
     for (size_t i = 0; i < numLeds; i++)
     {
-        strip.SetPixelColor(i, RgbColor(Mode[modi]->getR(i), Mode[modi]->getG(i), Mode[modi]->getB(i)));
+        strip.SetPixelColor(i, RgbColor(worldMap.getRGB(i)));
     }
     strip.Show();
 }
