@@ -31,7 +31,7 @@ void setup()
     pinMode(LED_BUILTIN, OUTPUT);
 
     digitalWrite(redLEDPin, HIGH);
-    digitalWrite(relayPin, HIGH); //Turn Relay on per default for testing
+    digitalWrite(relayPin, LOW); 
 
     Serial.begin(115200);
 
@@ -50,7 +50,7 @@ void loop()
 
     if (blueButton.getState(blueButton.click))
     {
-  
+        digitalWrite(relayPin, not digitalRead(relayPin));
     }
 
     if (redButton.getState(redButton.click))
