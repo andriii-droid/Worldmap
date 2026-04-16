@@ -48,22 +48,12 @@ void loop()
     redButton.updateButton();
     blueButton.updateButton();
 
-    if (blueButton.getState(blueButton.click))
-    {
-        digitalWrite(relayPin, not digitalRead(relayPin));
-    }
-
-    if (redButton.getState(redButton.click))
-    {
-        worldMap.nextMode();
-    }
+    if (blueButton.getState(blueButton.click)) { digitalWrite(relayPin, not digitalRead(relayPin));}
+    if (redButton.getState(redButton.click)) { worldMap.nextMode();}
 
     worldMap.run();
 
-    for (size_t i = 0; i < numLeds; i++)
-    {
-        strip.SetPixelColor(i, RgbColor(worldMap.getRGB(i)));
-    }
+    for (size_t i = 0; i < numLeds; i++) { strip.SetPixelColor(i, RgbColor(worldMap.getRGB(i))); }
     strip.Show();
 }
 
