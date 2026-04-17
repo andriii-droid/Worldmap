@@ -42,7 +42,6 @@ void setup()
     pinMode(greenLEDPin, OUTPUT);
     pinMode(redLEDPin, OUTPUT);
     pinMode(potiPin, INPUT);
-    pinMode(LED_BUILTIN, OUTPUT);
 
     digitalWrite(redLEDPin, HIGH);
 
@@ -86,7 +85,8 @@ void loop()
 
 void callback(char *topic, byte *payload, unsigned int length)
 {
-    String message;
+    String topicStr = String(topic);
+        String message;
     for (int i = 0; i < length; i++)
     {
         message += (char)payload[i];
@@ -95,14 +95,28 @@ void callback(char *topic, byte *payload, unsigned int length)
     Serial.print("Message arrived: ");
     Serial.println(message);
 
-    // Simple Command Logic
-    if (message == "ON")
-    {
-        power(true);
+    if (topicStr == "worldmap/led/set") {
+        // Simple Command Logic
+        if (message == "ON")
+        {
+            power(true);
+        }
+        else if (message == "OFF")
+        {
+            power(false);
+        }
     }
-    else if (message == "OFF")
+    else if (topicStr == "worldmap/led/brightness/set")
     {
-        power(false);
+
+    }
+    else if (topicStr == "worldmap/led/rgb/set") {
+        int r, g, b;
+        if (sscanf(message.c_str(), "%d,%d,%d", &r, &g, &b) == 3)
+        {
+            worldMap.setColor(r, g, b);
+            client.publish("worldmap/led/rgb/state", message.c_str());
+        }
     }
 }
 
