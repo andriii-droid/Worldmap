@@ -9,7 +9,8 @@
 void setup_wifi();
 void reconnect();
 void callback(char *topic, byte *payload, unsigned int length);
-void power(bool value);
+void newBrightness();
+    void power(bool value);
 
     // --- Configuration ---
 const char *ssid = "Zyxel_4061";
@@ -76,8 +77,9 @@ void loop()
     }
 
     if (redButton.getState(redButton.click)) { worldMap.nextMode();}
+    newBrightness();
 
-    worldMap.run();
+        worldMap.run();
 
     for (size_t i = 0; i < numLeds; i++) { strip.SetPixelColor(i, RgbColor(worldMap.getRGB(i))); }
     strip.Show();
@@ -86,7 +88,7 @@ void loop()
 void callback(char *topic, byte *payload, unsigned int length)
 {
     String topicStr = String(topic);
-        String message;
+    String message;
     for (int i = 0; i < length; i++)
     {
         message += (char)payload[i];
@@ -171,5 +173,17 @@ void power(bool value) {
     } else {
         digitalWrite(relayPin, LOW);
         client.publish("worldmap/led/state", "OFF");
+    }
+}
+
+void newBrightness() {
+    static int potiOld = 0;
+    int value = analogRead(potiPin);
+    if (abs(value - potiOld) > 10)
+    {
+        potiOld = value;
+        int brightness = map(value, 20, 8100, 0, 255);
+        worldMap.setBrightness(brightness);
+        client.publish("worldmap/led/brightness/state", std::to_string(brightness).c_str());
     }
 }
