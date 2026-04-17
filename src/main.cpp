@@ -108,7 +108,10 @@ void callback(char *topic, byte *payload, unsigned int length)
     }
     else if (topicStr == "worldmap/led/brightness/set")
     {
-
+        int brightness;
+        sscanf(message.c_str(), "%d", &brightness);
+        worldMap.setBrightness(brightness);
+        client.publish("worldmap/led/brightness/state", message.c_str());
     }
     else if (topicStr == "worldmap/led/rgb/set") {
         int r, g, b;
