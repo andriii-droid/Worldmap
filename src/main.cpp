@@ -3,6 +3,18 @@
 #include <vector>
 #include <NeoPixelBus.h>
 #include <pattern.h>
+#include <WiFi.h>
+#include <PubSubClient.h>
+
+void setup_wifi();
+void reconnect();
+void callback(char *topic, byte *payload, unsigned int length);
+void power(bool value);
+
+    // --- Configuration ---
+const char *ssid = "Zyxel_4061";
+const char *password = "ip7r3am4f3g8ih7f";
+const char *mqtt_server = "192.168.1.136"; // Your HA IP Address
 
 constexpr int relayPin = 36;
 constexpr int greenLEDPin = 1;
@@ -13,8 +25,10 @@ constexpr int potiPin = 11;
 constexpr int pixelPin = 6;
 constexpr int numLeds = 99;
 std::vector<int> cont = {20, 30, 49};
-Pattern worldMap(numLeds, cont);
 
+WiFiClient espClient;
+PubSubClient client(espClient);
+Pattern worldMap(numLeds, cont);
 NeoPixelBus<NeoGrbFeature, NeoEsp32Rmt0800KbpsMethod> strip(numLeds, pixelPin);
 
 // Button Initialization
@@ -31,13 +45,17 @@ void setup()
     pinMode(LED_BUILTIN, OUTPUT);
 
     digitalWrite(redLEDPin, HIGH);
-    digitalWrite(relayPin, LOW); 
 
     Serial.begin(115200);
 
     strip.Begin();
     strip.ClearTo(RgbColor(0, 0, 0));
     strip.Show();
+    setup_wifi();
+    client.setServer(mqtt_server, 1883);
+    client.setCallback(callback);
+    reconnect();
+    power(false);
 
     delay(1000);
     digitalWrite(redLEDPin, LOW);
@@ -45,10 +63,19 @@ void setup()
 
 void loop()
 {
+    if (!client.connected()) { reconnect(); }
+    client.loop();
     redButton.updateButton();
     blueButton.updateButton();
 
-    if (blueButton.getState(blueButton.click)) { digitalWrite(relayPin, not digitalRead(relayPin));}
+    if (blueButton.getState(blueButton.click)) {
+        if (digitalRead(relayPin)) {
+            power(false);
+        } else {
+            power(true);
+        }
+    }
+
     if (redButton.getState(redButton.click)) { worldMap.nextMode();}
 
     worldMap.run();
@@ -57,3 +84,75 @@ void loop()
     strip.Show();
 }
 
+void callback(char *topic, byte *payload, unsigned int length)
+{
+    String message;
+    for (int i = 0; i < length; i++)
+    {
+        message += (char)payload[i];
+    }
+
+    Serial.print("Message arrived: ");
+    Serial.println(message);
+
+    // Simple Command Logic
+    if (message == "ON")
+    {
+        power(true);
+    }
+    else if (message == "OFF")
+    {
+        power(false);
+    }
+}
+
+void setup_wifi()
+{
+    delay(10);
+    Serial.println();
+    Serial.print("Connecting to ");
+    Serial.println(ssid);
+
+    WiFi.begin(ssid, password);
+
+    while (WiFi.status() != WL_CONNECTED)
+    {
+        delay(500);
+        Serial.print(".");
+    }
+
+    Serial.println("");
+    Serial.println("WiFi connected");
+    Serial.println("IP address: ");
+    Serial.println(WiFi.localIP());
+}
+
+void reconnect()
+{
+    while (!client.connected())
+    {
+        Serial.print("Attempting MQTT connection...");
+        // Attempt to connect (Client ID, Username, Password)
+        if (client.connect("ESP32S2_LED", "andri", "Harmonize7-Award6-Onscreen3-Length2-Implant2"))
+        {
+            Serial.println("connected");
+            client.subscribe("worldmap/led/set");            // For ON/OFF
+            client.subscribe("worldmap/led/brightness/set"); // For Brightness slider
+            client.subscribe("worldmap/led/rgb/set");
+        }
+        else
+        {
+            delay(5000);
+        }
+    }
+}
+
+void power(bool value) {
+    if (value) {
+        digitalWrite(relayPin, HIGH);
+        client.publish("worldmap/led/state", "ON");
+    } else {
+        digitalWrite(relayPin, LOW);
+        client.publish("worldmap/led/state", "OFF");
+    }
+}
