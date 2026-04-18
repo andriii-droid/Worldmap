@@ -70,6 +70,8 @@ void loop()
 
     if (blueButton.getState(blueButton.click)) {
         if (digitalRead(relayPin)) {
+            strip.ClearTo(RgbColor(0, 0, 0));
+            strip.Show();
             power(false);
         } else {
             power(true);
@@ -79,10 +81,16 @@ void loop()
     if (redButton.getState(redButton.click)) { worldMap.nextMode();}
     newBrightness();
 
+    if (digitalRead(relayPin))
+    {
         worldMap.run();
 
-    for (size_t i = 0; i < numLeds; i++) { strip.SetPixelColor(i, RgbColor(worldMap.getRGB(i))); }
-    strip.Show();
+        for (size_t i = 0; i < numLeds; i++)
+        {
+            strip.SetPixelColor(i, RgbColor(worldMap.getRGB(i)));
+        }
+        strip.Show();
+    }
 }
 
 void callback(char *topic, byte *payload, unsigned int length)
