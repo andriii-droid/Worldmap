@@ -46,7 +46,7 @@ void setup()
 
     digitalWrite(redLEDPin, HIGH);
 
-    Serial.begin(115200);
+    // Serial.begin(115200);
 
     strip.Begin();
     strip.ClearTo(RgbColor(0, 0, 0));
@@ -70,8 +70,6 @@ void loop()
 
     if (blueButton.getState(blueButton.click)) {
         if (digitalRead(relayPin)) {
-            strip.ClearTo(RgbColor(0, 0, 0));
-            strip.Show();
             power(false);
         } else {
             power(true);
@@ -101,9 +99,6 @@ void callback(char *topic, byte *payload, unsigned int length)
     {
         message += (char)payload[i];
     }
-
-    Serial.print("Message arrived: ");
-    Serial.println(message);
 
     if (topicStr == "worldmap/led/set") {
         // Simple Command Logic
@@ -136,33 +131,22 @@ void callback(char *topic, byte *payload, unsigned int length)
 void setup_wifi()
 {
     delay(10);
-    Serial.println();
-    Serial.print("Connecting to ");
-    Serial.println(ssid);
 
     WiFi.begin(ssid, password);
 
     while (WiFi.status() != WL_CONNECTED)
     {
         delay(500);
-        Serial.print(".");
     }
-
-    Serial.println("");
-    Serial.println("WiFi connected");
-    Serial.println("IP address: ");
-    Serial.println(WiFi.localIP());
 }
 
 void reconnect()
 {
     while (!client.connected())
     {
-        Serial.print("Attempting MQTT connection...");
         // Attempt to connect (Client ID, Username, Password)
         if (client.connect("ESP32S2_LED", "andri", "Harmonize7-Award6-Onscreen3-Length2-Implant2"))
         {
-            Serial.println("connected");
             client.subscribe("worldmap/led/set");            // For ON/OFF
             client.subscribe("worldmap/led/brightness/set"); // For Brightness slider
             client.subscribe("worldmap/led/rgb/set");
@@ -181,17 +165,28 @@ void power(bool value) {
     } else {
         digitalWrite(relayPin, LOW);
         client.publish("worldmap/led/state", "OFF");
+        strip.ClearTo(RgbColor(0, 0, 0));
+        strip.Show();
     }
 }
 
 void newBrightness() {
     static int potiOld = 0;
-    int value = analogRead(potiPin);
-    if (abs(value - potiOld) > 10)
+    static int filterCycle = 0;
+    static int brightness[5];
+    brightness[filterCycle] = map(analogRead(potiPin), 20, 8100, 0, 255);
+    if (filterCycle == 4) {filterCycle = 0; } else {++filterCycle;}
+    int brightnessFiltered = 0;
+    for (size_t i = 0; i < 5; i++)
     {
-        potiOld = value;
-        int brightness = map(value, 20, 8100, 0, 255);
-        worldMap.setBrightness(brightness);
-        client.publish("worldmap/led/brightness/state", std::to_string(brightness).c_str());
+        brightnessFiltered += brightness[i];
+    }
+    brightnessFiltered /= 5;
+
+    if (abs(brightnessFiltered - potiOld) > 10)
+    {
+        potiOld = brightnessFiltered;
+        worldMap.setBrightness(brightnessFiltered);
+        client.publish("worldmap/led/brightness/state", std::to_string(brightnessFiltered).c_str());
     }
 }
