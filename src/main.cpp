@@ -75,14 +75,18 @@ void loop()
     client.loop();
 
     if (blueButtonFlag and (blueTimeStamp + debounceDelay) < millis()) {
-        power(not digitalRead(relayPin));
+        if (digitalRead(blueButtonPin)) {
+            power(not digitalRead(relayPin));
+        }
         blueButtonFlag = false;
         attachInterrupt(blueButtonPin, blueButtonCallback, FALLING);
     }
 
     if (redButtonFlag and (redTimeStamp + debounceDelay) < millis())
     {
-        worldMap.nextMode();
+        if (digitalRead(redButtonPin)) {
+            worldMap.nextMode();
+        }
         redButtonFlag = false;
         attachInterrupt(redButtonPin, redButtonCallback, FALLING);
     }
@@ -206,6 +210,7 @@ void ARDUINO_ISR_ATTR blueButtonCallback() {
     blueTimeStamp = millis();
     detachInterrupt(digitalPinToInterrupt(blueButtonPin));
 }
+
 void ARDUINO_ISR_ATTR redButtonCallback() { 
     redButtonFlag = true; 
     redTimeStamp = millis();
