@@ -75,7 +75,7 @@ void loop()
     client.loop();
 
     if (blueButtonFlag and (blueTimeStamp + debounceDelay) < millis()) {
-        if (digitalRead(blueButtonPin)) {
+        if (not digitalRead(blueButtonPin)) {
             power(not digitalRead(relayPin));
         }
         blueButtonFlag = false;
@@ -84,7 +84,7 @@ void loop()
 
     if (redButtonFlag and (redTimeStamp + debounceDelay) < millis())
     {
-        if (digitalRead(redButtonPin)) {
+        if (not digitalRead(redButtonPin)) {
             worldMap.nextMode();
         }
         redButtonFlag = false;
