@@ -1,5 +1,4 @@
 #include <Arduino.h>
-#include <Button.h>
 #include <vector>
 #include <NeoPixelBus.h>
 #include <pattern.h>
@@ -10,9 +9,11 @@ void setup_wifi();
 void reconnect();
 void callback(char *topic, byte *payload, unsigned int length);
 void newBrightness();
-    void power(bool value);
+void power(bool value);
+void ARDUINO_ISR_ATTR blueButtonCallback();
+void ARDUINO_ISR_ATTR redButtonCallback();
 
-    // --- Configuration ---
+// --- Configuration ---
 const char *ssid = "Zyxel_4061";
 const char *password = "ip7r3am4f3g8ih7f";
 const char *mqtt_server = "192.168.1.136"; // Your HA IP Address
@@ -26,15 +27,17 @@ constexpr int potiPin = 11;
 constexpr int pixelPin = 6;
 constexpr int numLeds = 99;
 std::vector<int> cont = {20, 30, 49};
+volatile bool blueButtonFlag = false;
+volatile unsigned long blueTimeStamp = 0;
+volatile bool redButtonFlag = false;
+volatile unsigned long redTimeStamp = 0;
+unsigned long debounceDelay = 50;
 
 WiFiClient espClient;
 PubSubClient client(espClient);
 Pattern worldMap(numLeds, cont);
 NeoPixelBus<NeoGrbFeature, NeoEsp32Rmt0800KbpsMethod> strip(numLeds, pixelPin);
 
-// Button Initialization
-Button redButton{redButtonPin};
-Button blueButton{blueButtonPin};
 
 void setup()
 {
@@ -43,6 +46,10 @@ void setup()
     pinMode(greenLEDPin, OUTPUT);
     pinMode(redLEDPin, OUTPUT);
     pinMode(potiPin, INPUT);
+
+    //Interupts
+    attachInterrupt(blueButtonPin, blueButtonCallback, FALLING);
+    attachInterrupt(redButtonPin, redButtonCallback, FALLING);
 
     digitalWrite(redLEDPin, HIGH);
 
@@ -56,6 +63,7 @@ void setup()
     client.setCallback(callback);
     reconnect();
     power(false);
+    // client.publish("worldmap/led/rgb/state",); TODO
 
     delay(1000);
     digitalWrite(redLEDPin, LOW);
@@ -65,18 +73,20 @@ void loop()
 {
     if (!client.connected()) { reconnect(); }
     client.loop();
-    redButton.updateButton();
-    blueButton.updateButton();
 
-    if (blueButton.getState(blueButton.click)) {
-        if (digitalRead(relayPin)) {
-            power(false);
-        } else {
-            power(true);
-        }
+    if (blueButtonFlag and (blueTimeStamp + debounceDelay) < millis()) {
+        power(not digitalRead(relayPin));
+        blueButtonFlag = false;
+        attachInterrupt(blueButtonPin, blueButtonCallback, FALLING);
     }
 
-    if (redButton.getState(redButton.click)) { worldMap.nextMode();}
+    if (redButtonFlag and (redTimeStamp + debounceDelay) < millis())
+    {
+        worldMap.nextMode();
+        redButtonFlag = false;
+        attachInterrupt(redButtonPin, redButtonCallback, FALLING);
+    }
+
     newBrightness();
 
     if (digitalRead(relayPin))
@@ -189,4 +199,15 @@ void newBrightness() {
         worldMap.setBrightness(brightnessFiltered);
         client.publish("worldmap/led/brightness/state", std::to_string(brightnessFiltered).c_str());
     }
+}
+
+void ARDUINO_ISR_ATTR blueButtonCallback() { 
+    blueButtonFlag = true; 
+    blueTimeStamp = millis();
+    detachInterrupt(digitalPinToInterrupt(blueButtonPin));
+}
+void ARDUINO_ISR_ATTR redButtonCallback() { 
+    redButtonFlag = true; 
+    redTimeStamp = millis();
+    detachInterrupt(digitalPinToInterrupt(redButtonPin));
 }
